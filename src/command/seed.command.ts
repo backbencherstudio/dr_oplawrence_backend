@@ -26,6 +26,7 @@ export class SeedCommand extends CommandRunner {
         await this.permissionSeed();
         await this.userSeed();
         await this.permissionRoleSeed();
+        await this.prayerSeed();
       });
 
       console.log('Seeding done.');
@@ -247,6 +248,44 @@ export class SeedCommand extends CommandRunner {
           name: 'viewer',
         },
       ],
+    });
+  }
+
+  async prayerSeed() {
+    await this.prisma.prayer.createMany({
+      data: [
+        {
+          text: "May today bring us strength, joy, and the wisdom to navigate life's challenges with grace and faith.",
+        },
+        {
+          text: 'Grant us courage to face the day, compassion for those we meet, and peace in our hearts.',
+        },
+        {
+          text: 'Help us to see the good in others, to be humble in our success, and to remain faithful in our struggles.',
+        },
+        {
+          text: 'Guide our steps, illuminate our path, and fill our hearts with love and purpose.',
+        },
+        {
+          text: 'May we find strength in unity, wisdom in silence, and hope in every new day.',
+        },
+        {
+          text: 'Bless us with patience to endure, strength to persevere, and faith to believe in better days ahead.',
+        },
+        {
+          text: 'Let us walk in love, speak in truth, and serve with a humble heart.',
+        },
+        {
+          text: 'Grant us the serenity to accept what we cannot change, the courage to change what we can, and the wisdom to know the difference.',
+        },
+        {
+          text: 'May our actions reflect our values, our words bring healing, and our presence bring comfort to those around us.',
+        },
+        {
+          text: 'Help us to forgive as we wish to be forgiven, to love unconditionally, and to serve selflessly.',
+        },
+      ],
+      skipDuplicates: true,
     });
   }
 }

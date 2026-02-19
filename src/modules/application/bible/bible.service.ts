@@ -102,4 +102,72 @@ export class BibleService {
       throw new InternalServerErrorException('Failed to load bible verses');
     }
   }
+
+  async getDailyDevotion() {
+    try {
+      const totalVerses = await this.prisma.bibleVerse.count();
+      const totalPrayers = await this.prisma.prayer.count({
+        where: { status: 1 },
+      });
+
+      if (totalVerses === 0) {
+        throw new NotFoundException('No verses available');
+      }
+      if (totalPrayers === 0) {
+        throw new NotFoundException('No prayers available');
+      }
+
+      // Get random verse
+      const randomVerseIndex = Math.floor(Math.random() * totalVerses);
+      const randomVerse = await this.prisma.bibleVerse.findFirstOrThrow({
+        skip: randomVerseIndex,
+        select: {
+          id: true,
+          text: true,
+          number: true,
+          chapter: {
+            select: {
+              number: true,
+              book: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Get random prayer
+      const randomPrayerIndex = Math.floor(Math.random() * totalPrayers);
+      const randomPrayer = await this.prisma.prayer.findFirstOrThrow({
+        where: { status: 1 },
+        skip: randomPrayerIndex,
+        select: {
+          text: true,
+        },
+      });
+
+      const bookName = randomVerse.chapter.book.name;
+      const chapterNumber = randomVerse.chapter.number;
+      const verseNumber = randomVerse.number;
+      const reference = `${bookName} ${chapterNumber}:${verseNumber}`;
+
+      return {
+        verse: {
+          text: randomVerse.text,
+          reference,
+          bookName,
+          chapter: chapterNumber,
+          verseNumber,
+        },
+        prayer: randomPrayer.text,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to load daily devotion');
+    }
+  }
 }

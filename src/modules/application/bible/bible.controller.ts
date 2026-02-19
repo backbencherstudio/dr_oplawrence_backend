@@ -22,4 +22,9 @@ export class BibleController {
   async getVerses(@Query() query: GetVersesQueryDto) {
     return this.bibleService.getVerses(query);
   }
+
+  @Get('daily')
+  async getDailyDevotion() {
+    return this.bibleService.getDailyDevotion();
+  }
 }

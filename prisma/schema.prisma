@@ -460,6 +460,17 @@ model BibleVerse {
   @@map("bible_verses")
 }
 
+model Prayer {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  text   String @db.Text
+  status Int?   @default(1) @db.SmallInt
+
+  @@map("prayers")
+}
+
 // this table stores example
 // model Note {
 //   id                String  @id @default(cuid())
