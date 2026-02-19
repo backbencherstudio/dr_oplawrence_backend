@@ -1,5 +1,7 @@
 // external imports
 import { Command, CommandRunner } from 'nest-commander';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
 // internal imports
 import appConfig from '../config/app.config';
 import { StringHelper } from '../common/helper/string.helper';
@@ -27,6 +29,7 @@ export class SeedCommand extends CommandRunner {
         await this.userSeed();
         await this.permissionRoleSeed();
         await this.prayerSeed();
+        await this.quizSeed();
       });
 
       console.log('Seeding done.');
@@ -252,40 +255,72 @@ export class SeedCommand extends CommandRunner {
   }
 
   async prayerSeed() {
-    await this.prisma.prayer.createMany({
-      data: [
-        {
-          text: "May today bring us strength, joy, and the wisdom to navigate life's challenges with grace and faith.",
-        },
-        {
-          text: 'Grant us courage to face the day, compassion for those we meet, and peace in our hearts.',
-        },
-        {
-          text: 'Help us to see the good in others, to be humble in our success, and to remain faithful in our struggles.',
-        },
-        {
-          text: 'Guide our steps, illuminate our path, and fill our hearts with love and purpose.',
-        },
-        {
-          text: 'May we find strength in unity, wisdom in silence, and hope in every new day.',
-        },
-        {
-          text: 'Bless us with patience to endure, strength to persevere, and faith to believe in better days ahead.',
-        },
-        {
-          text: 'Let us walk in love, speak in truth, and serve with a humble heart.',
-        },
-        {
-          text: 'Grant us the serenity to accept what we cannot change, the courage to change what we can, and the wisdom to know the difference.',
-        },
-        {
-          text: 'May our actions reflect our values, our words bring healing, and our presence bring comfort to those around us.',
-        },
-        {
-          text: 'Help us to forgive as we wish to be forgiven, to love unconditionally, and to serve selflessly.',
-        },
-      ],
-      skipDuplicates: true,
-    });
+    try {
+      const filePath = join(process.cwd(), 'public', 'prayers.json');
+      const raw = await readFile(filePath, 'utf-8');
+      const data = JSON.parse(raw) as { prayers: Array<{ text: string }> };
+
+      await this.prisma.prayer.createMany({
+        data: data.prayers,
+        skipDuplicates: true,
+      });
+
+      console.log(`Created ${data.prayers.length} prayers from JSON.`);
+    } catch (error) {
+      console.error('Error seeding prayers:', error);
+      throw error;
+    }
+  }
+
+  async quizSeed() {
+    try {
+      const filePath = join(process.cwd(), 'public', 'quizzes.json');
+      const raw = await readFile(filePath, 'utf-8');
+      const data = JSON.parse(raw) as {
+        quizzes: Array<{
+          title: string;
+          description: string;
+          level: number;
+          sort_order: number;
+          questions: Array<{
+            question: string;
+            options: string[];
+            correct_answer: number;
+            explanation: string;
+            sort_order: number;
+          }>;
+        }>;
+      };
+
+      for (const quizData of data.quizzes) {
+        const quiz = await this.prisma.quiz.create({
+          data: {
+            title: quizData.title,
+            description: quizData.description,
+            level: quizData.level,
+            sort_order: quizData.sort_order,
+          },
+        });
+
+        const questions = quizData.questions.map((q) => ({
+          quiz_id: quiz.id,
+          question: q.question,
+          options: JSON.stringify(q.options),
+          correct_answer: q.correct_answer,
+          explanation: q.explanation,
+          sort_order: q.sort_order,
+        }));
+
+        await this.prisma.quizQuestion.createMany({
+          data: questions,
+          skipDuplicates: true,
+        });
+      }
+
+      console.log(`Created quizzes from JSON.`);
+    } catch (error) {
+      console.error('Error seeding quizzes:', error);
+      throw error;
+    }
   }
 }

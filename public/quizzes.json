@@ -1,0 +1,133 @@
+{
+  "quizzes": [
+    {
+      "title": "Bible Basics - Level 1",
+      "description": "Test your knowledge of Bible fundamentals",
+      "level": 1,
+      "sort_order": 1,
+      "questions": [
+        {
+          "question": "How many books are in the Bible?",
+          "options": ["60", "66", "72", "80"],
+          "correct_answer": 1,
+          "explanation": "The Bible contains 66 books: 39 in the Old Testament and 27 in the New Testament.",
+          "sort_order": 1
+        },
+        {
+          "question": "What is the first book of the Bible?",
+          "options": ["Exodus", "Genesis", "Leviticus", "Numbers"],
+          "correct_answer": 1,
+          "explanation": "Genesis is the first book of the Bible and means 'beginning'.",
+          "sort_order": 2
+        },
+        {
+          "question": "Who wrote the Four Gospels?",
+          "options": ["Paul, Peter, John, James", "Matthew, Mark, Luke, John", "John, Paul, Apollos, Timothy", "James, John, Jude, Peter"],
+          "correct_answer": 1,
+          "explanation": "The Four Gospels were written by Matthew, Mark, Luke, and John.",
+          "sort_order": 3
+        },
+        {
+          "question": "What is the shortest book of the Bible?",
+          "options": ["Philippians", "Obadiah", "3 John", "1 John"],
+          "correct_answer": 2,
+          "explanation": "The book of 3 John is the shortest book in the Bible with only 14 verses.",
+          "sort_order": 4
+        },
+        {
+          "question": "In which city was Jesus born?",
+          "options": ["Nazareth", "Jerusalem", "Bethlehem", "Jericho"],
+          "correct_answer": 2,
+          "explanation": "Jesus was born in Bethlehem, fulfilling the Old Testament prophecies.",
+          "sort_order": 5
+        }
+      ]
+    },
+    {
+      "title": "Bible Knowledge - Level 2",
+      "description": "Intermediate Bible knowledge questions",
+      "level": 2,
+      "sort_order": 2,
+      "questions": [
+        {
+          "question": "How many apostles did Jesus have?",
+          "options": ["10", "11", "12", "14"],
+          "correct_answer": 2,
+          "explanation": "Jesus chose twelve apostles to be his closest followers.",
+          "sort_order": 1
+        },
+        {
+          "question": "Which prophet spent three days in the belly of a great fish?",
+          "options": ["Elijah", "Jeremiah", "Jonah", "Daniel"],
+          "correct_answer": 2,
+          "explanation": "Jonah was swallowed by a great fish and spent three days and nights in its belly.",
+          "sort_order": 2
+        },
+        {
+          "question": "What is the longest book of the Bible?",
+          "options": ["Matthew", "Psalms", "Jeremiah", "Genesis"],
+          "correct_answer": 1,
+          "explanation": "The book of Psalms is the longest book of the Bible with 150 chapters.",
+          "sort_order": 3
+        },
+        {
+          "question": "How many plagues did God send upon Egypt?",
+          "options": ["7", "9", "10", "12"],
+          "correct_answer": 2,
+          "explanation": "God sent ten plagues upon Egypt to convince Pharaoh to let the Israelites go.",
+          "sort_order": 4
+        },
+        {
+          "question": "Who built the Ark in the Old Testament?",
+          "options": ["Adam", "Abraham", "Noah", "Moses"],
+          "correct_answer": 2,
+          "explanation": "Noah built the Ark following God's instructions to save his family and animals from the flood.",
+          "sort_order": 5
+        }
+      ]
+    },
+    {
+      "title": "Bible Advanced - Level 3",
+      "description": "Advanced Bible study for deep learners",
+      "level": 3,
+      "sort_order": 3,
+      "questions": [
+        {
+          "question": "What was the original language of the Old Testament?",
+          "options": ["Greek", "Hebrew", "Aramaic", "Latin"],
+          "correct_answer": 1,
+          "explanation": "The Old Testament was originally written in Hebrew, with some portions in Aramaic.",
+          "sort_order": 1
+        },
+        {
+          "question": "Which book contains the most verses?",
+          "options": ["Genesis", "Psalms", "Isaiah", "Matthew"],
+          "correct_answer": 1,
+          "explanation": "The book of Psalms contains 2,461 verses, making it the book with the most verses.",
+          "sort_order": 2
+        },
+        {
+          "question": "How many times is the word 'love' mentioned in 1 Corinthians 13?",
+          "options": ["7", "9", "11", "13"],
+          "correct_answer": 1,
+          "explanation": "The word 'love' (or variations) appears 9 times in 1 Corinthians 13, the famous love chapter.",
+          "sort_order": 3
+        },
+        {
+          "question": "What is the name of the Jewish festival where Jesus performed the feeding of the 5000?",
+          "options": ["Passover", "Feast of Pentecost", "Feast of Tabernacles", "Feast of Weeks"],
+          "correct_answer": 0,
+          "explanation": "Jesus performed the Passover miracle during the Jewish Passover festival.",
+          "sort_order": 4
+        },
+        {
+          "question": "Which apostle wrote the most books of the New Testament?",
+          "options": ["John", "Peter", "Paul", "James"],
+          "correct_answer": 2,
+          "explanation": "Paul wrote thirteen books of the New Testament, more than any other apostle.",
+          "sort_order": 5
+        }
+      ]
+    }
+  ]
+}

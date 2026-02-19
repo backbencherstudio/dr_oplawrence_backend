@@ -82,6 +82,7 @@ model User {
   roles                Role[]
   role_users           RoleUser[]
   payment_transactions PaymentTransaction[]
+  quiz_attempts        QuizAttempt[]
 
   @@map("users")
 }
@@ -469,6 +470,80 @@ model Prayer {
   status Int?   @default(1) @db.SmallInt
 
   @@map("prayers")
+}
+
+model Quiz {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  title       String
+  description String?
+  level       Int     @db.SmallInt // 1, 2, 3
+  status      Int?    @default(1) @db.SmallInt
+  sort_order  Int?    @default(0)
+
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  quiz_id String
+  quiz    Quiz   @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+
+  question       String
+  correct_answer Int
+  options        String  @db.Text
+  explanation    String?
+  sort_order     Int?    @default(0)
+
+  quiz_answers QuizAnswer[]
+
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  quiz_id String
+  quiz    Quiz   @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+
+  total_questions Int
+  correct_answers Int       @default(0)
+  score           Float     @default(0) // percentage
+  completed_at    DateTime?
+
+  quiz_answers QuizAnswer[]
+
+  @@map("quiz_attempts")
+}
+
+model QuizAnswer {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  attempt_id String
+  attempt    QuizAttempt @relation(fields: [attempt_id], references: [id], onDelete: Cascade)
+
+  question_id String
+  question    QuizQuestion @relation(fields: [question_id], references: [id], onDelete: Cascade)
+
+  selected_answer Int // index of selected option
+  is_correct      Boolean @default(false)
+
+  @@map("quiz_answers")
 }
 
 // this table stores example
