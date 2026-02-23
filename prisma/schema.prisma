@@ -83,6 +83,7 @@ model User {
   role_users           RoleUser[]
   payment_transactions PaymentTransaction[]
   quiz_attempts        QuizAttempt[]
+  bible_verse_notes    BibleVerseNote[]
 
   @@map("users")
 }
@@ -453,12 +454,30 @@ model BibleVerse {
   updated_at DateTime @default(now())
 
   number     Int
-  text       String       @db.Text
+  text       String           @db.Text
   chapter_id String
-  chapter    BibleChapter @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
+  chapter    BibleChapter     @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
+  notes      BibleVerseNote[]
 
   @@unique([chapter_id, number])
   @@map("bible_verses")
+}
+
+model BibleVerseNote {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  verse_id String
+  verse    BibleVerse @relation(fields: [verse_id], references: [id], onDelete: Cascade)
+
+  note String @db.Text
+
+  @@unique([user_id, verse_id])
+  @@map("bible_verse_notes")
 }
 
 model Prayer {
