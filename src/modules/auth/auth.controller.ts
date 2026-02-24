@@ -12,7 +12,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
 import { memoryStorage } from 'multer';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -91,6 +91,16 @@ export class AuthController {
 
   // login user
   @ApiOperation({ summary: 'Login user' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'john@example.com' },
+        password: { type: 'string', example: 'StrongPass123' },
+      },
+      required: ['email', 'password'],
+    },
+  })
   @UseGuards(LocalAuthGuard)
   @Post('login')
   async login(@Req() req: Request, @Res() res: Response) {
@@ -124,6 +134,15 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('refresh-token')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        refresh_token: { type: 'string', example: 'your_refresh_token' },
+      },
+      required: ['refresh_token'],
+    },
+  })
   async refreshToken(
     @Req() req: Request,
     @Body() body: { refresh_token: string },
@@ -218,6 +237,15 @@ export class AuthController {
 
   @ApiOperation({ summary: 'Forgot password' })
   @Post('forgot-password')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'john@example.com' },
+      },
+      required: ['email'],
+    },
+  })
   async forgotPassword(@Body() data: { email: string }) {
     try {
       const email = data.email;
@@ -261,6 +289,15 @@ export class AuthController {
   // resend verification email to verify the email
   @ApiOperation({ summary: 'Resend verification email' })
   @Post('resend-verification-email')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'john@example.com' },
+      },
+      required: ['email'],
+    },
+  })
   async resendVerificationEmail(@Body() data: { email: string }) {
     try {
       const email = data.email;
@@ -279,6 +316,17 @@ export class AuthController {
   // reset password if user forget the password
   @ApiOperation({ summary: 'Reset password' })
   @Post('reset-password')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'john@example.com' },
+        token: { type: 'string', example: '123456' },
+        password: { type: 'string', example: 'StrongPass123' },
+      },
+      required: ['email', 'token', 'password'],
+    },
+  })
   async resetPassword(
     @Body() data: { email: string; token: string; password: string },
   ) {
@@ -316,6 +364,17 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'john@example.com' },
+        old_password: { type: 'string', example: 'OldPass123' },
+        new_password: { type: 'string', example: 'NewPass123' },
+      },
+      required: ['old_password', 'new_password'],
+    },
+  })
   async changePassword(
     @Req() req: Request,
     @Body() data: { email: string; old_password: string; new_password: string },
@@ -362,6 +421,15 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('request-email-change')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'newemail@example.com' },
+      },
+      required: ['email'],
+    },
+  })
   async requestEmailChange(
     @Req() req: Request,
     @Body() data: { email: string },
@@ -385,6 +453,16 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('change-email')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'newemail@example.com' },
+        token: { type: 'string', example: '123456' },
+      },
+      required: ['email', 'token'],
+    },
+  })
   async changeEmail(
     @Req() req: Request,
     @Body() data: { email: string; token: string },
@@ -435,6 +513,15 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('verify-2fa')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        token: { type: 'string', example: '123456' },
+      },
+      required: ['token'],
+    },
+  })
   async verify2FA(@Req() req: Request, @Body() data: { token: string }) {
     try {
       const user_id = req.user.userId;

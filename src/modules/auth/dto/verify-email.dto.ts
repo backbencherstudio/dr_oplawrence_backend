@@ -3,10 +3,16 @@ import { IsNotEmpty } from 'class-validator';
 
 export class VerifyEmailDto {
   @IsNotEmpty()
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Email address to verify',
+    example: 'john@example.com',
+  })
   email: string;
 
   @IsNotEmpty()
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Email verification token/code',
+    example: '123456',
+  })
   token: string;
 }
