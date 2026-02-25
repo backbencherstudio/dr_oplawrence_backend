@@ -10,10 +10,148 @@ import { GetVersesQueryDto } from './dto/get-verses.query.dto';
 import { SearchBibleTopicQueryDto } from './dto/search-bible-topic.query.dto';
 import { CreateVerseNoteDto } from './dto/create-verse-note.dto';
 import { GetVerseNotesQueryDto } from './dto/get-verse-notes.query.dto';
+import { ExplainVerseDto } from './dto/explain-verse.dto';
+import { BibleOpenAiService } from './bible.openai.service';
+import { ArchiveDailyDevotionalDto } from './dto/archive-daily-devotional.dto';
+import { GetArchivedDevotionalsQueryDto } from './dto/get-archived-devotionals.query.dto';
 
 @Injectable()
 export class BibleService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly bibleOpenAiService: BibleOpenAiService,
+  ) {}
+
+  async generateVerseAudio(dto: ExplainVerseDto) {
+    try {
+      const verseData = await this.prisma.bibleVerse.findFirst({
+        where: {
+          number: dto.verseNumber,
+          chapter: {
+            number: dto.chapter,
+            book: {
+              name: {
+                equals: dto.bookName.trim(),
+                mode: 'insensitive' as const,
+              },
+            },
+          },
+        },
+        select: {
+          number: true,
+          text: true,
+          chapter: {
+            select: {
+              number: true,
+              book: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!verseData) {
+        throw new NotFoundException('Verse not found');
+      }
+
+      const bookName = verseData.chapter.book.name;
+      const chapter = verseData.chapter.number;
+      const verseNumber = verseData.number;
+      const verseText = verseData.text;
+      const reference = `${bookName} ${chapter}:${verseNumber}`;
+
+      const audioResult = await this.bibleOpenAiService.generateVerseAudio(
+        reference,
+        verseText,
+      );
+
+      return {
+        bookName,
+        chapter,
+        verseNumber,
+        reference,
+        verseText,
+        mimeType: audioResult.mimeType,
+        audioBase64: audioResult.audioBase64,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof InternalServerErrorException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to generate verse audio');
+    }
+  }
+
+  async explainVerse(dto: ExplainVerseDto) {
+    try {
+      const verseData = await this.prisma.bibleVerse.findFirst({
+        where: {
+          number: dto.verseNumber,
+          chapter: {
+            number: dto.chapter,
+            book: {
+              name: {
+                equals: dto.bookName.trim(),
+                mode: 'insensitive' as const,
+              },
+            },
+          },
+        },
+        select: {
+          number: true,
+          text: true,
+          chapter: {
+            select: {
+              number: true,
+              book: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!verseData) {
+        throw new NotFoundException('Verse not found');
+      }
+
+      const bookName = verseData.chapter.book.name;
+      const chapter = verseData.chapter.number;
+      const verseNumber = verseData.number;
+      const verseText = verseData.text;
+      const reference = `${bookName} ${chapter}:${verseNumber}`;
+
+      const explanation = await this.bibleOpenAiService.explainVerse(
+        reference,
+        verseText,
+      );
+
+      return {
+        bookName,
+        chapter,
+        verseNumber,
+        reference,
+        verseText,
+        explanation,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof InternalServerErrorException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to explain verse');
+    }
+  }
 
   async getBooks(query: GetBooksQueryDto) {
     const page = query.page ?? 1;
@@ -158,6 +296,7 @@ export class BibleService {
 
       return {
         verse: {
+          id: randomVerse.id,
           text: randomVerse.text,
           reference,
           bookName,
@@ -171,6 +310,223 @@ export class BibleService {
         throw error;
       }
       throw new InternalServerErrorException('Failed to load daily devotion');
+    }
+  }
+
+  async getMeditation() {
+    try {
+      const totalVerses = await this.prisma.bibleVerse.count();
+
+      if (totalVerses === 0) {
+        throw new NotFoundException('No verses available');
+      }
+
+      const randomVerseIndex = Math.floor(Math.random() * totalVerses);
+      const randomVerse = await this.prisma.bibleVerse.findFirstOrThrow({
+        skip: randomVerseIndex,
+        select: {
+          id: true,
+          text: true,
+          number: true,
+          chapter: {
+            select: {
+              number: true,
+              book: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const bookName = randomVerse.chapter.book.name;
+      const chapterNumber = randomVerse.chapter.number;
+      const verseNumber = randomVerse.number;
+      const reference = `${bookName} ${chapterNumber}:${verseNumber}`;
+
+      const aiResult =
+        await this.bibleOpenAiService.generateMeditationAndPrayer(
+          reference,
+          randomVerse.text,
+        );
+
+      return {
+        verse: {
+          id: randomVerse.id,
+          text: randomVerse.text,
+          reference,
+          bookName,
+          chapter: chapterNumber,
+          verseNumber,
+        },
+        meditation: aiResult.meditation,
+        prayer: aiResult.prayer,
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof InternalServerErrorException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to load meditation');
+    }
+  }
+
+  async archiveDailyDevotional(userId: string, dto: ArchiveDailyDevotionalDto) {
+    try {
+      const verse = await this.prisma.bibleVerse.findUnique({
+        where: { id: dto.verseId },
+        select: {
+          id: true,
+          text: true,
+          number: true,
+          chapter: {
+            select: {
+              number: true,
+              book: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!verse) {
+        throw new NotFoundException('Verse not found');
+      }
+
+      const archived = await this.prisma.bibleArchivedDevotional.upsert({
+        where: {
+          user_id_verse_id: {
+            user_id: userId,
+            verse_id: dto.verseId,
+          },
+        },
+        create: {
+          user_id: userId,
+          verse_id: dto.verseId,
+        },
+        update: {},
+      });
+
+      return {
+        id: archived.id,
+        date: archived.created_at,
+        verse: verse.text,
+        verseNumber: verse.number,
+        chapter: verse.chapter.number,
+        bookName: verse.chapter.book.name,
+        reference: `${verse.chapter.book.name} ${verse.chapter.number}:${verse.number}`,
+        updatedAt: archived.updated_at,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Failed to archive daily devotional',
+      );
+    }
+  }
+
+  async getMyArchivedDevotionals(
+    userId: string,
+    query: GetArchivedDevotionalsQueryDto,
+  ) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    try {
+      const [total, devotionals] = await this.prisma.$transaction([
+        this.prisma.bibleArchivedDevotional.count({
+          where: { user_id: userId },
+        }),
+        this.prisma.bibleArchivedDevotional.findMany({
+          where: { user_id: userId },
+          select: {
+            id: true,
+            created_at: true,
+            updated_at: true,
+            verse: {
+              select: {
+                id: true,
+                text: true,
+                number: true,
+                chapter: {
+                  select: {
+                    number: true,
+                    book: {
+                      select: {
+                        name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            updated_at: 'desc',
+          },
+          skip,
+          take: limit,
+        }),
+      ]);
+
+      return {
+        page,
+        limit,
+        total,
+        data: devotionals.map((item) => ({
+          id: item.id,
+          date: item.created_at,
+          verse: item.verse.text,
+          verseNumber: item.verse.number,
+          chapter: item.verse.chapter.number,
+          bookName: item.verse.chapter.book.name,
+          reference: `${item.verse.chapter.book.name} ${item.verse.chapter.number}:${item.verse.number}`,
+          updatedAt: item.updated_at,
+        })),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Failed to load archived devotionals',
+      );
+    }
+  }
+
+  async deleteMyArchivedDevotional(userId: string, archivedId: string) {
+    try {
+      const existing = await this.prisma.bibleArchivedDevotional.findFirst({
+        where: {
+          id: archivedId,
+          user_id: userId,
+        },
+        select: { id: true },
+      });
+
+      if (!existing) {
+        throw new NotFoundException('Archived devotional not found');
+      }
+
+      await this.prisma.bibleArchivedDevotional.delete({
+        where: { id: archivedId },
+      });
+
+      return { message: 'Archived devotional deleted successfully' };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Failed to delete archived devotional',
+      );
     }
   }
 

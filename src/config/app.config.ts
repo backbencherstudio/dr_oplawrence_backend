@@ -62,6 +62,10 @@ export default () => ({
     },
   },
 
+  openai: {
+    api_key: process.env.OPENAI_API_KEY,
+  },
+
   payment: {
     stripe: {
       secret_key: process.env.STRIPE_SECRET_KEY,

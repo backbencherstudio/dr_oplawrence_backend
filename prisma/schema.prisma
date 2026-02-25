@@ -84,6 +84,7 @@ model User {
   payment_transactions PaymentTransaction[]
   quiz_attempts        QuizAttempt[]
   bible_verse_notes    BibleVerseNote[]
+  archived_devotionals BibleArchivedDevotional[]
 
   @@map("users")
 }
@@ -453,11 +454,12 @@ model BibleVerse {
   created_at DateTime @default(now())
   updated_at DateTime @default(now())
 
-  number     Int
-  text       String           @db.Text
-  chapter_id String
-  chapter    BibleChapter     @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
-  notes      BibleVerseNote[]
+  number               Int
+  text                 String                    @db.Text
+  chapter_id           String
+  chapter              BibleChapter              @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
+  notes                BibleVerseNote[]
+  archived_devotionals BibleArchivedDevotional[]
 
   @@unique([chapter_id, number])
   @@map("bible_verses")
@@ -478,6 +480,24 @@ model BibleVerseNote {
 
   @@unique([user_id, verse_id])
   @@map("bible_verse_notes")
+}
+
+model BibleArchivedDevotional {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  verse_id String
+  verse    BibleVerse @relation(fields: [verse_id], references: [id], onDelete: Cascade)
+
+  meditation String? @db.Text
+  prayer     String? @db.Text
+
+  @@unique([user_id, verse_id])
+  @@map("bible_archived_devotionals")
 }
 
 model Prayer {

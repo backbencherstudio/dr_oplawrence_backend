@@ -6,17 +6,21 @@ import {
   Param,
   Post,
   Query,
+  Res,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBody,
   ApiBearerAuth,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiProduces,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { BibleService } from './bible.service';
 import { GetBooksQueryDto } from './dto/get-books.query.dto';
 import { GetChaptersQueryDto } from './dto/get-chapters.query.dto';
@@ -28,6 +32,9 @@ import { Roles } from 'src/common/guard/role/roles.decorator';
 import { Role } from 'src/common/guard/role/role.enum';
 import { CreateVerseNoteDto } from './dto/create-verse-note.dto';
 import { GetVerseNotesQueryDto } from './dto/get-verse-notes.query.dto';
+import { ExplainVerseDto } from './dto/explain-verse.dto';
+import { ArchiveDailyDevotionalDto } from './dto/archive-daily-devotional.dto';
+import { GetArchivedDevotionalsQueryDto } from './dto/get-archived-devotionals.query.dto';
 
 @ApiTags('Bible')
 @Controller('application/bible')
@@ -58,10 +65,42 @@ export class BibleController {
     return this.bibleService.getDailyDevotion();
   }
 
+  @ApiOperation({
+    summary: 'Get random verse with AI meditation and prayer',
+  })
+  @Get('meditation')
+  async getMeditation() {
+    return this.bibleService.getMeditation();
+  }
+
   @ApiOperation({ summary: 'Search verses by a single topic' })
   @Get('search')
   async searchByTopic(@Query() query: SearchBibleTopicQueryDto) {
     return this.bibleService.searchByTopic(query);
+  }
+
+  @ApiOperation({ summary: 'Explain a specific Bible verse with AI' })
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiBody({ type: ExplainVerseDto })
+  @Post('explain')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async explainVerse(@Body() dto: ExplainVerseDto) {
+    return this.bibleService.explainVerse(dto);
+  }
+
+  @ApiOperation({
+    summary: 'Generate base64 audio for a specific Bible verse with AI',
+  })
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiBody({ type: ExplainVerseDto })
+  @Post('audio')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async generateVerseAudio(@Body() dto: ExplainVerseDto) {
+    return this.bibleService.generateVerseAudio(dto);
   }
 
   @ApiOperation({ summary: 'Create or update note for a verse' })
@@ -73,6 +112,50 @@ export class BibleController {
   async upsertVerseNote(@Req() req: Request, @Body() dto: CreateVerseNoteDto) {
     const user_id = req.user.userId;
     return this.bibleService.upsertVerseNote(user_id, dto);
+  }
+
+  @ApiOperation({ summary: 'Archive a daily devotional for logged-in user' })
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiBody({ type: ArchiveDailyDevotionalDto })
+  @Post('devotionals/archive')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async archiveDailyDevotional(
+    @Req() req: Request,
+    @Body() dto: ArchiveDailyDevotionalDto,
+  ) {
+    const user_id = req.user.userId;
+    return this.bibleService.archiveDailyDevotional(user_id, dto);
+  }
+
+  @ApiOperation({ summary: 'Get archived daily devotionals of logged-in user' })
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @Get('devotionals/archive')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async getMyArchivedDevotionals(
+    @Req() req: Request,
+    @Query() query: GetArchivedDevotionalsQueryDto,
+  ) {
+    const user_id = req.user.userId;
+    return this.bibleService.getMyArchivedDevotionals(user_id, query);
+  }
+
+  @ApiOperation({ summary: 'Delete archived daily devotional by id' })
+  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Archived devotional id' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @Delete('devotionals/archive/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async deleteMyArchivedDevotional(
+    @Req() req: Request,
+    @Param('id') archivedId: string,
+  ) {
+    const user_id = req.user.userId;
+    return this.bibleService.deleteMyArchivedDevotional(user_id, archivedId);
   }
 
   @ApiOperation({ summary: 'Get all notes of logged-in user' })
