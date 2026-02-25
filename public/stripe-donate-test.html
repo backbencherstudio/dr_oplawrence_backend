@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stripe Donate Test</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 680px;
+        margin: 40px auto;
+        padding: 0 16px;
+      }
+      h1 {
+        margin-bottom: 8px;
+      }
+      .hint {
+        color: #555;
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+      .box {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
+      }
+      input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+      }
+      #card-element {
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        padding: 12px;
+        background: #fff;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        border: 0;
+        border-radius: 6px;
+        background: #0f62fe;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+      }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        background: #f6f8fa;
+        padding: 10px;
+        border-radius: 6px;
+      }
+      .ok { color: #0a7f2e; }
+      .err { color: #b42318; }
+    </style>
+  </head>
+  <body>
+    <h1>Stripe Donate Test</h1>
+    <p class="hint">
+      This page calls <code>/api/payment/stripe/donate</code> then confirms card payment with Stripe Elements.
+    </p>
+
+    <div class="box">
+      <label>API Base URL</label>
+      <input id="apiBase" value="http://localhost:4000/api" />
+
+      <label>JWT Access Token (Bearer)</label>
+      <input
+        id="token"
+        value="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwic3ViIjoiY21tMWV5YzUzMDAwMHZsaHdoZWd1Zm16MiIsImlhdCI6MTc3MTk4NjUxOSwiZXhwIjoxNzcxOTkwMTE5fQ.-1heYlQnTnIkgKzYVB-fiXGRy7S1uqdy866lsAN0MJU"
+      />
+
+      <label>Stripe Publishable Key</label>
+      <input
+        id="publishableKey"
+        value="pk_test_51RgIDjGbZdiSzPj89wef1vxHaK0jRa4fAUcYFU1KT1mhNBvhgmfwmUWLwaLuV8YEqpae9XdgIwi3cAwHaQ0bxniz00QSaaPJgY"
+      />
+
+      <button id="initBtn">Initialize Card</button>
+    </div>
+
+    <div class="box">
+      <label>Amount</label>
+      <input id="amount" type="number" min="0.01" step="0.01" value="10" />
+
+      <label>Currency</label>
+      <input id="currency" value="usd" />
+
+      <label>Card Details</label>
+      <div id="card-element"></div>
+      <p id="cardError" class="err"></p>
+
+      <button id="donateBtn" disabled>Donate</button>
+    </div>
+
+    <div class="box">
+      <strong>Status</strong>
+      <p id="status">Not started</p>
+      <strong>Response</strong>
+      <pre id="result">-</pre>
+    </div>
+
+    <script>
+      let stripe;
+      let card;
+
+      const initBtn = document.getElementById('initBtn');
+      const donateBtn = document.getElementById('donateBtn');
+      const statusEl = document.getElementById('status');
+      const resultEl = document.getElementById('result');
+      const cardErrorEl = document.getElementById('cardError');
+
+      function setStatus(text, isError = false) {
+        statusEl.textContent = text;
+        statusEl.className = isError ? 'err' : 'ok';
+      }
+
+      function setResult(data) {
+        resultEl.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      }
+
+      initBtn.addEventListener('click', () => {
+        const publishableKey = document.getElementById('publishableKey').value.trim();
+        if (!publishableKey) {
+          setStatus('Publishable key লাগবে', true);
+          return;
+        }
+
+        stripe = Stripe(publishableKey);
+        const elements = stripe.elements();
+
+        const old = document.getElementById('card-element');
+        old.innerHTML = '';
+
+        card = elements.create('card');
+        card.mount('#card-element');
+
+        card.on('change', (event) => {
+          cardErrorEl.textContent = event.error ? event.error.message : '';
+        });
+
+        donateBtn.disabled = false;
+        setStatus('Card initialized');
+      });
+
+      donateBtn.addEventListener('click', async () => {
+        try {
+          donateBtn.disabled = true;
+          setStatus('Creating donation intent...');
+
+          const apiBase = document.getElementById('apiBase').value.trim().replace(/\/$/, '');
+          const token = document.getElementById('token').value.trim();
+          const amount = Number(document.getElementById('amount').value);
+          const currency = document.getElementById('currency').value.trim() || 'usd';
+
+          if (!token) throw new Error('JWT token লাগবে');
+          if (!stripe || !card) throw new Error('Initialize Card আগে করুন');
+          if (!amount || amount <= 0) throw new Error('Valid amount দিন');
+
+          const donateRes = await fetch(`${apiBase}/payment/stripe/donate`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ amount, currency }),
+          });
+
+          const donateData = await donateRes.json();
+          setResult(donateData);
+
+          if (!donateRes.ok) {
+            throw new Error(donateData?.message || 'Donation intent create failed');
+          }
+
+          const clientSecret = donateData.clientSecret;
+          if (!clientSecret) {
+            throw new Error('clientSecret missing from donate response');
+          }
+
+          setStatus('Confirming card payment...');
+
+          const confirmResult = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: {
+              card,
+            },
+          });
+
+          if (confirmResult.error) {
+            setStatus(`Payment failed: ${confirmResult.error.message}`, true);
+            setResult(confirmResult.error);
+            return;
+          }
+
+          const intent = confirmResult.paymentIntent;
+          setStatus(`Payment status: ${intent.status}`);
+          setResult(intent);
+        } catch (err) {
+          setStatus(err.message || 'Unknown error', true);
+        } finally {
+          donateBtn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
