@@ -29,7 +29,7 @@ export class GetBooksQueryDto {
 
   @ApiPropertyOptional({
     description: 'Search books by name',
-    example: 'John',
+    example: 'Genesis',
   })
   @IsOptional()
   @IsString()
