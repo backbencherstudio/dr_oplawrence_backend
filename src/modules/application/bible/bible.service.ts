@@ -155,7 +155,7 @@ export class BibleService {
     }
   }
 
-  async getBooks(query: GetBooksQueryDto) {
+  async getBooks(query: GetBooksQueryDto, userId?: string) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 100;
     const skip = (page - 1) * limit;
@@ -164,10 +164,15 @@ export class BibleService {
       : undefined;
 
     try {
-      return await this.prisma.bibleBook.findMany({
+      const books = await this.prisma.bibleBook.findMany({
         select: {
           id: true,
           name: true,
+          chapters: {
+            select: {
+              id: true,
+            },
+          },
         },
         where,
         orderBy: {
@@ -175,6 +180,52 @@ export class BibleService {
         },
         skip,
         take: limit,
+      });
+
+      if (!userId) {
+        return books.map((book) => ({
+          id: book.id,
+          name: book.name,
+          completionPercentage: 0,
+        }));
+      }
+
+      const chapterIds = books.flatMap((book) =>
+        book.chapters.map((chapter) => chapter.id),
+      );
+
+      const completedRows = chapterIds.length
+        ? await this.prisma.bibleChapterProgress.findMany({
+            where: {
+              user_id: userId,
+              is_completed: true,
+              chapter_id: {
+                in: chapterIds,
+              },
+            },
+            select: {
+              chapter_id: true,
+            },
+          })
+        : [];
+
+      const completedSet = new Set(completedRows.map((row) => row.chapter_id));
+
+      return books.map((book) => {
+        const totalChapters = book.chapters.length;
+        const completedChapters = book.chapters.filter((chapter) =>
+          completedSet.has(chapter.id),
+        ).length;
+        const completionPercentage =
+          totalChapters === 0
+            ? 0
+            : Number(((completedChapters / totalChapters) * 100).toFixed(2));
+
+        return {
+          id: book.id,
+          name: book.name,
+          completionPercentage,
+        };
       });
     } catch (error) {
       throw new InternalServerErrorException('Failed to load bible books');
@@ -210,7 +261,7 @@ export class BibleService {
     }
   }
 
-  async getVerses(query: GetVersesQueryDto) {
+  async getVerses(query: GetVersesQueryDto, userId?: string) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 100;
     const skip = (page - 1) * limit;
@@ -223,6 +274,26 @@ export class BibleService {
 
       if (!chapter) {
         throw new NotFoundException('Chapter not found');
+      }
+
+      if (userId) {
+        await this.prisma.bibleChapterProgress.upsert({
+          where: {
+            user_id_chapter_id: {
+              user_id: userId,
+              chapter_id: query.chapterId,
+            },
+          },
+          create: {
+            user_id: userId,
+            chapter_id: query.chapterId,
+            is_completed: true,
+          },
+          update: {
+            is_completed: true,
+            updated_at: new Date(),
+          },
+        });
       }
 
       return await this.prisma.bibleVerse.findMany({

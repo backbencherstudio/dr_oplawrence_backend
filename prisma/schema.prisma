@@ -86,6 +86,7 @@ model User {
   bible_verse_notes      BibleVerseNote[]
   archived_devotionals   BibleArchivedDevotional[]
   bible_verse_highlights BibleVerseHighlight[]
+  bible_chapter_progresses BibleChapterProgress[]
 
   @@map("users")
 }
@@ -444,7 +445,8 @@ model BibleChapter {
   book_id String
   book    BibleBook @relation(fields: [book_id], references: [id], onDelete: Cascade)
 
-  verses BibleVerse[]
+  verses     BibleVerse[]
+  progresses BibleChapterProgress[]
 
   @@unique([book_id, number])
   @@map("bible_chapters")
@@ -515,6 +517,23 @@ model BibleVerseHighlight {
 
   @@unique([user_id, verse_id])
   @@map("bible_verse_highlights")
+}
+
+model BibleChapterProgress {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  chapter_id String
+  chapter    BibleChapter @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
+
+  is_completed Boolean @default(true)
+
+  @@unique([user_id, chapter_id])
+  @@map("bible_chapter_progresses")
 }
 
 model Prayer {

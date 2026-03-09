@@ -38,27 +38,41 @@ import { GetArchivedDevotionalsQueryDto } from './dto/get-archived-devotionals.q
 import { CreateVerseHighlightDto } from './dto/create-verse-highlight.dto';
 import { GetVerseHighlightsQueryDto } from './dto/get-verse-highlights.query.dto';
 
+
 @ApiTags('Bible')
 @Controller('application/bible')
 export class BibleController {
   constructor(private readonly bibleService: BibleService) {}
 
   @ApiOperation({ summary: 'Get bible books' })
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @Get('books')
-  async getBooks(@Query() query: GetBooksQueryDto) {
-    return this.bibleService.getBooks(query);
+ @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async getBooks(@Req() req: Request, @Query() query: GetBooksQueryDto) {
+    const user_id = req.user?.userId;
+    return this.bibleService.getBooks(query, user_id);
   }
 
   @ApiOperation({ summary: 'Get chapters by book id' })
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @Get('chapters')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async getChapters(@Query() query: GetChaptersQueryDto) {
     return this.bibleService.getChapters(query);
   }
 
   @ApiOperation({ summary: 'Get verses by chapter id' })
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   @Get('verses')
-  async getVerses(@Query() query: GetVersesQueryDto) {
-    return this.bibleService.getVerses(query);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async getVerses(@Req() req: Request, @Query() query: GetVersesQueryDto) {
+    const user_id = req.user?.userId;
+    return this.bibleService.getVerses(query, user_id);
   }
 
   @ApiOperation({ summary: 'Get daily devotion (random verse and prayer)' })
