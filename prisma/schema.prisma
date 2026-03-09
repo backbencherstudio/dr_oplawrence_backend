@@ -76,15 +76,16 @@ model User {
   receiver_notifications    Notification[] @relation("receiver")
   sender_notifications      Notification[] @relation("sender")
 
-  user_payment_methods UserPaymentMethod[]
-  user_settings        UserSetting[]
-  ucodes               Ucode[]
-  roles                Role[]
-  role_users           RoleUser[]
-  payment_transactions PaymentTransaction[]
-  quiz_attempts        QuizAttempt[]
-  bible_verse_notes    BibleVerseNote[]
-  archived_devotionals BibleArchivedDevotional[]
+  user_payment_methods   UserPaymentMethod[]
+  user_settings          UserSetting[]
+  ucodes                 Ucode[]
+  roles                  Role[]
+  role_users             RoleUser[]
+  payment_transactions   PaymentTransaction[]
+  quiz_attempts          QuizAttempt[]
+  bible_verse_notes      BibleVerseNote[]
+  archived_devotionals   BibleArchivedDevotional[]
+  bible_verse_highlights BibleVerseHighlight[]
 
   @@map("users")
 }
@@ -460,6 +461,7 @@ model BibleVerse {
   chapter              BibleChapter              @relation(fields: [chapter_id], references: [id], onDelete: Cascade)
   notes                BibleVerseNote[]
   archived_devotionals BibleArchivedDevotional[]
+  highlights           BibleVerseHighlight[]
 
   @@unique([chapter_id, number])
   @@map("bible_verses")
@@ -498,6 +500,21 @@ model BibleArchivedDevotional {
 
   @@unique([user_id, verse_id])
   @@map("bible_archived_devotionals")
+}
+
+model BibleVerseHighlight {
+  id         String   @id @default(cuid())
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  verse_id String
+  verse    BibleVerse @relation(fields: [verse_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, verse_id])
+  @@map("bible_verse_highlights")
 }
 
 model Prayer {

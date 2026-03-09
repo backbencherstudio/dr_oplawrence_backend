@@ -35,6 +35,8 @@ import { GetVerseNotesQueryDto } from './dto/get-verse-notes.query.dto';
 import { ExplainVerseDto } from './dto/explain-verse.dto';
 import { ArchiveDailyDevotionalDto } from './dto/archive-daily-devotional.dto';
 import { GetArchivedDevotionalsQueryDto } from './dto/get-archived-devotionals.query.dto';
+import { CreateVerseHighlightDto } from './dto/create-verse-highlight.dto';
+import { GetVerseHighlightsQueryDto } from './dto/get-verse-highlights.query.dto';
 
 @ApiTags('Bible')
 @Controller('application/bible')
@@ -127,6 +129,65 @@ export class BibleController {
   ) {
     const user_id = req.user.userId;
     return this.bibleService.archiveDailyDevotional(user_id, dto);
+  }
+
+  @ApiOperation({ summary: 'Create or update highlight for a verse' })
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @ApiBody({ type: CreateVerseHighlightDto })
+  @Post('highlights')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async upsertVerseHighlight(
+    @Req() req: Request,
+    @Body() dto: CreateVerseHighlightDto,
+  ) {
+    const user_id = req.user.userId;
+    return this.bibleService.upsertVerseHighlight(user_id, dto);
+  }
+
+  @ApiOperation({ summary: 'Get all highlights of logged-in user' })
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @Get('highlights')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async getMyVerseHighlights(
+    @Req() req: Request,
+    @Query() query: GetVerseHighlightsQueryDto,
+  ) {
+    const user_id = req.user.userId;
+    return this.bibleService.getMyVerseHighlights(user_id, query);
+  }
+
+  @ApiOperation({ summary: 'Get a highlight by verse id for logged-in user' })
+  @ApiBearerAuth()
+  @ApiParam({ name: 'verseId', description: 'Bible verse id' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @Get('highlights/verse/:verseId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async getMyVerseHighlightByVerseId(
+    @Req() req: Request,
+    @Param('verseId') verseId: string,
+  ) {
+    const user_id = req.user.userId;
+    return this.bibleService.getMyVerseHighlightByVerseId(user_id, verseId);
+  }
+
+  @ApiOperation({ summary: 'Delete a highlight by id for logged-in user' })
+  @ApiBearerAuth()
+  @ApiParam({ name: 'id', description: 'Verse highlight id' })
+  @ApiUnauthorizedResponse({ description: 'Unauthorized' })
+  @Delete('highlights/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.USER)
+  async deleteMyVerseHighlight(
+    @Req() req: Request,
+    @Param('id') highlightId: string,
+  ) {
+    const user_id = req.user.userId;
+    return this.bibleService.deleteMyVerseHighlight(user_id, highlightId);
   }
 
   @ApiOperation({ summary: 'Get archived daily devotionals of logged-in user' })

@@ -14,6 +14,8 @@ import { ExplainVerseDto } from './dto/explain-verse.dto';
 import { BibleOpenAiService } from './bible.openai.service';
 import { ArchiveDailyDevotionalDto } from './dto/archive-daily-devotional.dto';
 import { GetArchivedDevotionalsQueryDto } from './dto/get-archived-devotionals.query.dto';
+import { CreateVerseHighlightDto } from './dto/create-verse-highlight.dto';
+import { GetVerseHighlightsQueryDto } from './dto/get-verse-highlights.query.dto';
 
 @Injectable()
 export class BibleService {
@@ -530,6 +532,239 @@ export class BibleService {
     }
   }
 
+  async upsertVerseHighlight(userId: string, dto: CreateVerseHighlightDto) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const verse = await this.prisma.bibleVerse.findUnique({
+        where: { id: dto.verseId },
+        select: {
+          id: true,
+          text: true,
+          number: true,
+          chapter: {
+            select: {
+              number: true,
+              book: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!verse) {
+        throw new NotFoundException('Verse not found');
+      }
+
+      const highlight = await this.prisma.bibleVerseHighlight.upsert({
+        where: {
+          user_id_verse_id: {
+            user_id: userId,
+            verse_id: dto.verseId,
+          },
+        },
+        create: {
+          user_id: userId,
+          verse_id: dto.verseId,
+        },
+        update: {},
+      });
+
+      return {
+        id: highlight.id,
+        verseId: verse.id,
+        verseText: verse.text,
+        reference: `${verse.chapter.book.name} ${verse.chapter.number}:${verse.number}`,
+        createdAt: highlight.created_at,
+        updatedAt: highlight.updated_at,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to save verse highlight');
+    }
+  }
+
+  async getMyVerseHighlights(
+    userId: string,
+    query: GetVerseHighlightsQueryDto,
+  ) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const [total, highlights] = await this.prisma.$transaction([
+        this.prisma.bibleVerseHighlight.count({
+          where: { user_id: userId },
+        }),
+        this.prisma.bibleVerseHighlight.findMany({
+          where: { user_id: userId },
+          select: {
+            id: true,
+            created_at: true,
+            updated_at: true,
+            verse: {
+              select: {
+                id: true,
+                text: true,
+                number: true,
+                chapter: {
+                  select: {
+                    number: true,
+                    book: {
+                      select: {
+                        name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            updated_at: 'desc',
+          },
+          skip,
+          take: limit,
+        }),
+      ]);
+
+      return {
+        page,
+        limit,
+        total,
+        data: highlights.map((item) => ({
+          id: item.id,
+          verseId: item.verse.id,
+          verseText: item.verse.text,
+          reference: `${item.verse.chapter.book.name} ${item.verse.chapter.number}:${item.verse.number}`,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+        })),
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to load verse highlights');
+    }
+  }
+
+  async getMyVerseHighlightByVerseId(userId: string, verseId: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const highlight = await this.prisma.bibleVerseHighlight.findFirst({
+        where: {
+          user_id: userId,
+          verse_id: verseId,
+        },
+        select: {
+          id: true,
+          created_at: true,
+          updated_at: true,
+          verse: {
+            select: {
+              id: true,
+              text: true,
+              number: true,
+              chapter: {
+                select: {
+                  number: true,
+                  book: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!highlight) {
+        throw new NotFoundException('Verse highlight not found');
+      }
+
+      return {
+        id: highlight.id,
+        verseId: highlight.verse.id,
+        verseText: highlight.verse.text,
+        reference: `${highlight.verse.chapter.book.name} ${highlight.verse.chapter.number}:${highlight.verse.number}`,
+        createdAt: highlight.created_at,
+        updatedAt: highlight.updated_at,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to load verse highlight');
+    }
+  }
+
+  async deleteMyVerseHighlight(userId: string, highlightId: string) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      const existing = await this.prisma.bibleVerseHighlight.findFirst({
+        where: {
+          id: highlightId,
+          user_id: userId,
+        },
+        select: { id: true },
+      });
+
+      if (!existing) {
+        throw new NotFoundException('Verse highlight not found');
+      }
+
+      await this.prisma.bibleVerseHighlight.delete({
+        where: { id: highlightId },
+      });
+
+      return { message: 'Verse highlight deleted successfully' };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        'Failed to delete verse highlight',
+      );
+    }
+  }
+
   async searchByTopic(query: SearchBibleTopicQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
@@ -614,6 +849,15 @@ export class BibleService {
 
   async upsertVerseNote(userId: string, dto: CreateVerseNoteDto) {
     try {
+      // check user exits
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
       const verse = await this.prisma.bibleVerse.findUnique({
         where: { id: dto.verseId },
         select: {
@@ -675,6 +919,15 @@ export class BibleService {
     const skip = (page - 1) * limit;
 
     try {
+      // check user exits
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
       const [total, notes] = await this.prisma.$transaction([
         this.prisma.bibleVerseNote.count({
           where: { user_id: userId },
@@ -733,6 +986,15 @@ export class BibleService {
 
   async getMyVerseNoteByVerseId(userId: string, verseId: string) {
     try {
+      // check user exits
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
       const note = await this.prisma.bibleVerseNote.findFirst({
         where: {
           user_id: userId,
@@ -786,6 +1048,15 @@ export class BibleService {
 
   async deleteMyVerseNote(userId: string, noteId: string) {
     try {
+      // check user exits
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
       const existing = await this.prisma.bibleVerseNote.findFirst({
         where: {
           id: noteId,
